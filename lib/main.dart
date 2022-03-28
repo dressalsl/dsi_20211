@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:english_words/english_words.dart';
-import 'package:flutter/rendering.dart';
+
+final suggestions = <WordPair>[];
+final biggerFont = const TextStyle(fontSize: 18);
+final saved = <WordPair>[];
+final formKey = GlobalKey<FormState>();
+bool isGrid = false;
 
 void main() => runApp(MyApp());
 
@@ -12,7 +17,12 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           primarySwatch: Colors.pink,
         ),
-        home: RandomWords(),
+        //home: RandomWords(),
+        initialRoute: '/',
+        routes: {
+          '/': (context) => RandomWords(),
+          '/edit': (context) => EditScreen()
+        },
         debugShowCheckedModeBanner: false);
   }
 }
@@ -25,12 +35,6 @@ class RandomWords extends StatefulWidget {
 }
 
 class _RandomWordsState extends State<RandomWords> {
-  final _suggestions = <String>[];
-  final _saved = <String>{};
-  final _biggerFont = const TextStyle(fontSize: 18);
-  final _formKey = GlobalKey<FormState>();
-  bool isGrid = false;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,10 +67,10 @@ class _RandomWordsState extends State<RandomWords> {
                 return Divider();
               }
               final int index = i ~/ 2;
-              if (index >= _suggestions.length) {
-                _suggestions.add(WordPair.random().asPascalCase);
+              if (index >= suggestions.length) {
+                suggestions.addAll(generateWordPairs().take(10));
               }
-              return _buildRow(_suggestions[index], index);
+              return _buildRow(suggestions[index], index, context);
             });
       case true:
         return GridView.builder(
@@ -76,24 +80,25 @@ class _RandomWordsState extends State<RandomWords> {
             ),
             itemBuilder: (BuildContext _context, int i) {
               final int index = i;
-              if (index >= _suggestions.length) {
-                _suggestions.add(WordPair.random().asPascalCase);
+              if (index >= suggestions.length) {
+                suggestions.addAll(generateWordPairs().take(10));
               }
-              return _buildRow(_suggestions[index], index);
+              return _buildRow(suggestions[index], index, context);
             });
     }
     return Text('');
   }
 
-  Widget _buildRow(String name, int index) {
-    final alreadySaved = _saved.contains(name);
+  Widget _buildRow(WordPair name, int index, BuildContext context) {
+    final strName = name.toString();
+    final alreadySaved = saved.contains(name);
     return Dismissible(
         direction: DismissDirection.endToStart,
-        key: Key(name),
+        key: Key(strName),
         child: ListTile(
           title: Text(
-            name,
-            style: _biggerFont,
+            name.asPascalCase,
+            style: biggerFont,
           ),
           trailing: IconButton(
             icon: Icon(alreadySaved ? Icons.favorite : Icons.favorite_border),
@@ -101,15 +106,18 @@ class _RandomWordsState extends State<RandomWords> {
             onPressed: () {
               setState(() {
                 if (alreadySaved) {
-                  _saved.remove(name);
+                  saved.remove(name);
                 } else {
-                  _saved.add(name);
+                  saved.add(name);
                 }
               });
             },
           ),
           onTap: () {
-            _editRow(name, index);
+            //_editRow(name, index, context)
+            Navigator.pushNamed(context, '/edit',
+                arguments: {'name': name, 'index': index});
+            ;
           },
         ),
         background: Container(
@@ -119,9 +127,9 @@ class _RandomWordsState extends State<RandomWords> {
                 child: Icon(Icons.delete_forever))),
         onDismissed: (direction) {
           setState(() {
-            _suggestions.remove(name);
+            suggestions.remove(name);
             if (alreadySaved) {
-              _saved.remove(name);
+              saved.remove(name);
             }
           });
         });
@@ -131,12 +139,12 @@ class _RandomWordsState extends State<RandomWords> {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (BuildContext context) {
-          final tiles = _saved.map(
+          final tiles = saved.map(
             (name) {
               return ListTile(
                 title: Text(
-                  name,
-                  style: _biggerFont,
+                  name.asPascalCase,
+                  style: biggerFont,
                 ),
               );
             },
@@ -156,66 +164,100 @@ class _RandomWordsState extends State<RandomWords> {
       ),
     );
   }
+}
 
-  void _saveEdit(BuildContext context) {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() {
-      _formKey.currentState!.save();
-    });
-    Navigator.pop(context);
+class EditScreen extends StatefulWidget {
+  // const _EditScreen({ Key? key }) : super(key: key);
+
+  @override
+  EditScreenState createState() => EditScreenState();
+}
+
+class EditScreenState extends State<EditScreen> {
+  String first = '';
+  String second = '';
+  final formKey = GlobalKey<FormState>();
+  Widget build(BuildContext context) {
+    Map arguments = ModalRoute.of(context)!.settings.arguments as Map;
+    var name = arguments['name'];
+    var index = arguments['index'];
+    first = name.first;
+    second = name.second;
+    return Scaffold(
+        appBar: AppBar(title: const Text('Edit')),
+        body: Wrap(
+          children: <Widget>[
+            Form(
+                key: formKey,
+                child: Column(children: [
+                  TextFormField(
+                      validator: (value) {
+                        return value!.isEmpty ? 'Can not be null' : null;
+                      },
+                      autofocus: true,
+                      initialValue: first,
+                      keyboardType: TextInputType.text,
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.black,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'First Name',
+                        contentPadding: const EdgeInsets.only(
+                            left: 15, top: 15, right: 15, bottom: 15),
+                      ),
+                      onChanged: (value) => first = value.toString()),
+                  TextFormField(
+                      validator: (value) {
+                        return value!.isEmpty ? 'Can not be null' : null;
+                      },
+                      autofocus: true,
+                      initialValue: second,
+                      keyboardType: TextInputType.text,
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.black,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'Second Name',
+                        contentPadding: const EdgeInsets.only(
+                            left: 15, top: 15, right: 15, bottom: 15),
+                      ),
+                      onChanged: (value) => second = value.toString())
+                ])),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => _saveEdit(context, first, second, index, name),
+                child: Text('Save'),
+                style: TextButton.styleFrom(
+                  primary: Colors.pink,
+                  padding: EdgeInsets.all(4),
+                  side: BorderSide(
+                    color: Colors.pink,
+                  ),
+                  backgroundColor: Colors.pink.shade100,
+                  minimumSize: Size(200, 50),
+                ),
+              ),
+            )
+          ],
+        ));
   }
 
-  void _editRow(String name, int index) {
-    Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (BuildContext context) {
-      return Scaffold(
-          appBar: AppBar(title: const Text('Edit')),
-          body: Wrap(
-            children: <Widget>[
-              Form(
-                  key: _formKey,
-                  child: TextFormField(
-                    validator: (value) {
-                      return value!.isEmpty ? 'Can not be null' : null;
-                    },
-                    autofocus: true,
-                    initialValue: name,
-                    keyboardType: TextInputType.text,
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.black,
-                    ),
-                    decoration: InputDecoration(
-                      labelText: 'Name',
-                      contentPadding: const EdgeInsets.only(
-                          left: 15, top: 15, right: 15, bottom: 15),
-                    ),
-                    onSaved: (value) {
-                      _suggestions[index] = value.toString();
-                      if (_saved.contains(name)) {
-                        _saved.remove(name);
-                        _saved.add(value.toString());
-                      }
-                    },
-                  )),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => _saveEdit(context),
-                  child: Text('Save'),
-                  style: TextButton.styleFrom(
-                    primary: Colors.pink,
-                    padding: EdgeInsets.all(4),
-                    side: BorderSide(
-                      color: Colors.pink,
-                    ),
-                    backgroundColor: Colors.pink.shade100,
-                    minimumSize: Size(200, 50),
-                  ),
-                ),
-              )
-            ],
-          ));
-    }));
+  void _saveEdit(BuildContext context, first, second, index, name) {
+    if (!formKey.currentState!.validate()) return;
+    formKey.currentState!.save();
+    setState(() {
+      final newName = WordPair(first, second);
+      final oldName = name;
+      suggestions[index] = newName;
+
+      if (saved.contains(oldName)) {
+        saved.remove(oldName);
+        saved.add(newName);
+      }
+    });
+    Navigator.pop(context);
   }
 }
