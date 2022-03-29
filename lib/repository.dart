@@ -10,7 +10,7 @@ class ParPalavraRepository {}
 
 ParPalavraRepository rep = ParPalavraRepository();
 
-List CreateTwentyWords() {
+List createTwentyWords() {
   var result = [];
   for (var i = 0; i < 20; i++) {
     WordPair wp = WordPair.random();

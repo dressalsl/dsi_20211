@@ -6,6 +6,7 @@ final biggerFont = const TextStyle(fontSize: 18);
 final saved = <WordPair>[];
 final formKey = GlobalKey<FormState>();
 bool isGrid = false;
+bool isAddWord = false;
 
 void main() => runApp(MyApp());
 
@@ -50,7 +51,16 @@ class _RandomWordsState extends State<RandomWords> {
                       isGrid = true;
                     }
                   }),
-              icon: Icon(Icons.change_circle_outlined))
+              icon: Icon(Icons.change_circle_outlined)),
+          IconButton(
+              icon: Icon(Icons.add_circle_outline_rounded),
+              onPressed: () => setState(() {
+                    if (isAddWord) {
+                      isAddWord = false;
+                    } else {
+                      isAddWord = true;
+                    }
+                  }))
         ],
       ),
       body: _buildSuggestions(),
